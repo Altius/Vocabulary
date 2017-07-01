@@ -28,32 +28,8 @@ a = A.drop([A.columns[0], A.columns[1], A.columns[2]], axis=1).values
 a = a.T
 print('finished drop at ', mytime(), flush=True)
 
-# In[3]
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
-
-from datetime import date
-today = str(date.today())
-
-# In[9]:
-
-from matplotlib.colors import LogNorm
-
-
-
-# # Now lets automate this
-
-# In[58]:
-
-model_errors = []
-Ncomps_arr = []
-
 
 answer = 8
-
-
 
 model = NMF(n_components=answer, init='random', random_state=myrandom)
 print('starting NMF at ', mytime(), flush=True)
@@ -68,6 +44,3 @@ if (writefiles):
 	outfile = today+'NMF_Ncomps'+str(answer)+'daslog2.npy'
 	np.save(outfile, newdaslog2)	
 
-
-newdaslog3 = np.dot(newdaslog, newdaslog2)
-print('finished iteration at ', mytime(), flush=True)
