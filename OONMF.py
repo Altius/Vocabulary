@@ -1,3 +1,22 @@
+'''
+class: NMFobject
+
+functions:
+__init__
+matrix_input_name
+read_matrix_input
+performNMF
+build_reconstruction
+normalize_matrices
+normalize_reweighted_matrices
+writeNMF_CSV
+writeNMFnormed_CSV
+writeNMFreweighted_CSV
+writeNMFreweighted_normed_CSV
+find_modules
+
+'''
+
 ClusterMode = True
 import sys
 #import datetime
@@ -111,10 +130,12 @@ class NMFobject:
         pd.DataFrame(self.ReweightedNormedMixture.T).to_csv(Mixture_foutname)
 
 
-    def define_colorsA(self, mode='Sasha'):
-        if (mode=='Sasha'):
+    def define_colorsA(self, mode='newSasha'):
+        if (mode=='newSasha'):
+            self.Comp_colors = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99', '#e31a1c', '#fdbf6f', '#ff7f00', '#cab2d6','#6a3d9a','#ffff99','#b15928','#ffd700', '#AAAAAA', '#C52892', '#00bbbb']
+        elif (mode=='Sasha'):
             self.Comp_colors = ['red', 'tan', 'lime','blue','m','k','c', 'coral', 'indigo','darkgreen','orange','grey','gold', 'lightskyblue', 'peru', 'olive']
-        elif (mode == 'Wouter'):
+        else:
             self.Comp_colors = ["#A6CEE3", "#438EC0", "#63A8A0", "#98D277", "#3BA432", "#B89B74", "#F16667", "#E62F27", "#F9A963", "#FE982C", "#ED8F47", "#C3AAD2", "#7D54A5","#B9A499", "#EAD27A" ,"#B15928"]
         if (self.Ncomps>16):
             np.random.seed(666)
@@ -132,7 +153,7 @@ class NMFobject:
 
 
 
-    def make_stacked_bar_plot(self, Nrelevant, BarMatrix, bargraph_out, names = [], plotClusterMode=False, barsortorder=[], clusterTopLabels=[], colormode='Sasha'):
+    def make_stacked_bar_plot(self, Nrelevant, BarMatrix, bargraph_out, names = [], plotClusterMode=False, barsortorder=[], clusterTopLabels=[], colormode='newSasha'):
         if len(barsortorder)<1:
             barsortorder = np.arange(Nrelevant)
         if len(names) < 1:
@@ -145,7 +166,7 @@ class NMFobject:
         self.define_colorsA(mode=colormode)
         plt.clf()
         plt.figure(figsize=(150,40))
-        plt.bar(ttt[start:end], BarMatrix[0,start:end][barsortorder], color='r',
+        plt.bar(ttt[start:end], BarMatrix[0,start:end][barsortorder], color=self.Comp_colors[0],
                  bottom=ground_pSample[start:end], alpha=0.75)
         ground_pSample = BarMatrix[0,start:end][barsortorder]
         for i in range(1,self.Ncomps):
@@ -259,8 +280,9 @@ class NMFobject:
         self.ReweightedBasis = np.array(bigAllDHSSum_ar).T
         self.ReweightedMixture = np.array(bigAllSampleSum_ar)
             
-    
-    def find_modules(self,data, ClustMult=4, chosenthresh = 0.35, cosdist_sample_thresh=0.3, cosdist_DHS_thresh=0.3 ):
+
+
+    def find_modules(self, data, ClustMult=4, chosenthresh = 0.35, cosdist_sample_thresh=0.3, cosdist_DHS_thresh=0.3 ):
     
         #initially only implementing SampleNormed basis
         #but with a fix to make the DHSappearCut  more self-consistent
@@ -353,9 +375,9 @@ class NMFobject:
             else:
                 density_in_data = 0
             #calculate true positives, false positives, False negatives, precision ,recall
-            TP =len(flatcorresponding_data[ (flatcorresponding_data>chosenthresh) * (flatsorted_Module>chosenthresh)])
-            FP =len(flatcorresponding_data[ np.invert(flatcorresponding_data>chosenthresh) * (flatsorted_Module>chosenthresh)])
-            FN =len(flatcorresponding_data[ (flatcorresponding_data>chosenthresh) * np.invert(flatsorted_Module>chosenthresh)])
+            TP = len(flatcorresponding_data[ (flatcorresponding_data>chosenthresh) * (flatsorted_Module>chosenthresh)])
+            FP = len(flatcorresponding_data[ np.invert(flatcorresponding_data>chosenthresh) * (flatsorted_Module>chosenthresh)])
+            FN = len( flatcorresponding_data[ (flatcorresponding_data>chosenthresh) * np.invert(flatsorted_Module>chosenthresh)])
             if ((TP + FN ) > 0):
                 recall = TP / (TP + FN)
             else: 
