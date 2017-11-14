@@ -109,7 +109,8 @@ class NMFobject:
 
     def writeNMF(self, Basis_foutname, Mixture_foutname):
         np.save(Basis_foutname, self.Basis)
-        np.save(Mixture_foutname, self.Mixture.T)
+        #very confusing but it must be Mixture here for internal self-consisten\ cy. Can be Mixture.T for CSV files
+        np.save(Mixture_foutname, self.Mixture)
         
         
         
@@ -167,10 +168,10 @@ class NMFobject:
         plt.clf()
         plt.figure(figsize=(150,40))
         plt.bar(ttt[start:end], BarMatrix[0,start:end][barsortorder], color=self.Comp_colors[0],
-                 bottom=ground_pSample[start:end], alpha=0.75)
+                 bottom=ground_pSample[start:end], alpha=1.0)
         ground_pSample = BarMatrix[0,start:end][barsortorder]
         for i in range(1,self.Ncomps):
-            plt.bar(ttt[start:end],BarMatrix[i,start:end][barsortorder], bottom = ground_pSample, color=self.Comp_colors[i], alpha=0.75)
+            plt.bar(ttt[start:end],BarMatrix[i,start:end][barsortorder], bottom = ground_pSample, color=self.Comp_colors[i], alpha=1.0)
             ground_pSample = np.sum(BarMatrix[0: i+1,start:end], axis=0)[barsortorder]
         increase_axis_fontsize()
         plt.ylabel('sum of signal in matrix',fontsize=70)
@@ -178,7 +179,7 @@ class NMFobject:
         samplenamesize = 11
         samplenamesize = (1/Nrelevant)**0.5 * 300
         #thebottom = 0.15
-        thebottom = (1/Nrelevant)**0.3 * 1.2
+        thebottom = min([(1/Nrelevant)**0.3 * 1.2, 0.3])
         if(plotClusterMode):
             plt.xticks(ttt, ttt.astype(str), rotation='vertical', fontsize=samplenamesize)
             if len(clusterTopLabels) > 0:
