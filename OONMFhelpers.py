@@ -40,7 +40,18 @@ def get_barsortorder(relevantMatrix):
         barsortorder = np.append(barsortorder, desired_order[relevant_cut])
     barsortorder = barsortorder.astype(int)
     return barsortorder
-    Basis_names = pd.read_table('colTitles.651samples_friendly.txt', header=None)[1].values
 
 
+def get_barsortorder_OfficialOrder(relevantMatrix):
+    # much more ugly but gets the job done
+    # assumes rows are the data, columns are NMF components
+    WSO = np.array([7,5,15,9,12,14,3,8,13,2,4,6,16,11,10,1]).astype(int) - 1
+    WinningComponent = np.argmax(relevantMatrix, axis=1)
+    barsortorder = np.array([])
+    for i in range(relevantMatrix.shape[1]):
+        desired_order = np.argsort(-relevantMatrix[:,WinningComponent[WSO[i]]])
+        relevant_cut = WinningComponent[desired_order]==WSO[i]
+        barsortorder = np.append(barsortorder, desired_order[relevant_cut])
+    barsortorder = barsortorder.astype(int)
+    return barsortorder
 	
