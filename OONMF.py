@@ -2,43 +2,62 @@
 class: NMFobject
 
 functions:
-__init__
-matrix_input_name
-read_matrix_input
-performNMF
-build_reconstruction
-normalize_matrices
-normalize_reweighted_matrices
-writeNMF_CSV
-writeNMFnormed_CSV
-writeNMFreweighted_CSV
-writeNMFreweighted_normed_CSV
-find_modules
+
+
+__init__  -  initiate NMF instance with basic attributes
+
+matrix_input_name  - set the filename if reading is needed
+
+read_matrix_input - read the input matrices defined in matrix_input_name
+
+performNMF - actually do the deed. Sets values for Basis and Mixture. will replace read matrix from previous step 
+
+build_reconstruction - just take dot product of Basis and Mixture. Not done unless requested since this can take up a lot of memory. 
+
+normalize_matrices - create NormedBasis and NormedMixture
+
+compute_reweighted_matrices - computes ReweightedBasis and Reweighted Mixture. This is a specific reweighting method to attempt to attribute the elements of one matrix by understanding how much they contribute to the other. I.e. figure out how many DHSs are accounted for by the C1 in sample dimensions. 
+
+normalize_reweighted_matrices - normalize the above matrices
+
+writeNMF - write numpy binary files of Basis and Mixture. Mixture is not transposed in this case, preserving the NC x NDHS dimensionality
+
+writeNMF_CSV - write CSV file for Basis and Mixture
+writeNMFnormed_CSV - same as above but for normed version
+writeNMFreweighted_CSV - same as above but for reweighted version
+writeNMFreweighted_normed_CSV - same as above but for normed, reweighted version
+
+define_colors - this sets the color scheme that we use for visualization
+
+make_stacked_bar_plot - make our signature stacked bar plot. Should this really be part of the default library? I don't know but that's how I've decided to arrange things
+
+precision_recall_curve - only works when objective matrix is known, and consists of entries 0/1. Compares reconstruction to the original data, using sort of precision/recall mechanics for samples. 
+
+quick_precision_recall_curve - same as above, but only uses three threshold values - 0.3, 0.35, 0.4. Found to be the ideal choices.
+
+precision_recall_curveDHS - uses the same method, but now computes precision/recall per DHS rather than per sample.
+
+find_modules - DEFUNCT search for some patterns in the matrix. 
 
 '''
 
 ClusterMode = True
 import sys
-#import datetime
-#import time
 import numpy as np
 import pandas as pd
-#from datetime import date
 if (ClusterMode):
 	import matplotlib
 	matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from sklearn.decomposition import NMF
+import OONMFhelpers as OH
 
-
-from matplotlib.colors import LogNorm
-from OONMFhelpers import *
-today = get_today()
+today = OH.get_today()
 
 
 class NMFobject:
-    def __init__(self, theNcomps=16):
+    def __init__(self, theNcomps):
         self.Basis = []
         self.Mixture = []
         self.Ncomps = theNcomps
@@ -59,14 +78,12 @@ class NMFobject:
 
         self.ReweightedNormedBasis = []
         self.ReweightedNormedMixture = []
-    
-    
-    
+
     
     def matrix_input_name(self, Basis_finname='', Mixture_finname=''):
         if (len(Basis_finname) < 1 or len(Mixture_finname) < 1):
-            #raise ValueError('syntax: read_matrix(Basis_finname, Mixture_finname)')
             print('syntax: read_matrix(Basis_finname, Mixture_finname)')
+            sys.exit()
         self.Basis_finname = Basis_finname
         self.Mixture_finname = Mixture_finname
 
@@ -79,21 +96,52 @@ class NMFobject:
         
         
         
-    def performNMF(self, data, randomseed=0):
+    def performNMF(self, data, randomseed=0, theinit='random', thesolver='cd', thebetaloss='frobenius'):
         if(len(self.Basis) > 0):
             print('you are overwriting the Basis',self.Basis)
             cont = input('are you sure?')
             if (cont == 'n'):
                 return
             
-        model = NMF(n_components=self.Ncomps, init='random', random_state=randomseed)
-        print('starting NMF at ', mytime(), flush=True)
+        model = NMF(n_components=self.Ncomps, init=theinit, random_state=randomseed, solver=thesolver, beta_loss=thebetaloss)
+        print('starting NMF at ', OH.mytime(), flush=True)
         self.Basis = model.fit_transform(data) 
-        print('done with NMF at ', mytime(), flush=True)
+        print('done with NMF at ', OH.mytime(), flush=True)
         self.Mixture = model.components_
         self.BasisD = self.Basis.shape[0]
         self.MixtureD = self.Mixture.shape[1]
-        
+        return model.reconstruction_err_
+
+    def performNMF_KL(self, data, randomseed=0):
+        if(len(self.Basis) > 0):
+            print('you are overwriting the Basis',self.Basis)
+            cont = input('are you sure?')
+            if (cont == 'n'):
+                return
+        model = NMF(n_components=self.Ncomps, init='random', random_state=randomseed, solver='mu', beta_loss ='kullback-leibler')
+        print('starting NMF at ', OH.mytime(), flush=True)
+        self.Basis = model.fit_transform(data) 
+        print('done with NMF at ', OH.mytime(), flush=True)
+        self.Mixture = model.components_
+        self.BasisD = self.Basis.shape[0]
+        self.MixtureD = self.Mixture.shape[1]
+
+    def performNMF_MU(self, data, randomseed=0):
+        if(len(self.Basis) > 0):
+            print('you are overwriting the Basis',self.Basis)
+            cont = input('are you sure?')
+            if (cont == 'n'):
+                return
+            
+        model = NMF(n_components=self.Ncomps, init='random', random_state=randomseed, solver='mu', beta_loss ='frobenius')
+        print('starting NMF at ', OH.mytime(), flush=True)
+        self.Basis = model.fit_transform(data) 
+        print('done with NMF at ', OH.mytime(), flush=True)
+        self.Mixture = model.components_
+        self.BasisD = self.Basis.shape[0]
+        self.MixtureD = self.Mixture.shape[1]
+
+
     def build_reconstruction(self):
         self.Reconstruction = np.dot(self.Basis, self.Mixture)
                 
@@ -102,6 +150,26 @@ class NMFobject:
         self.NormedMixture =   self.Mixture / np.sum(self.Mixture, axis=0)
         self.NormedBasis =   (self.Basis.T / np.sum(self.Basis.T, axis=0)).T
 
+    def compute_reweighted_matrices(self):
+    
+        bigAllDHSSum_ar = []
+        bigAllSampleSum_ar = []
+        
+        
+        for i in range(self.Ncomps):
+            bongo = np.copy(self.Basis)
+            for k in range(self.Ncomps):
+                if (k!=i):
+                    bongo[:,k]*=0
+            sansvar = np.dot(bongo, self.Mixture)
+            bigAllDHSSum_ar.append(np.sum(sansvar[:,0:], axis=1))
+            bigAllSampleSum_ar.append(np.sum(sansvar[:,0:], axis=0))
+            del(sansvar)
+        
+        self.ReweightedBasis = np.array(bigAllDHSSum_ar).T
+        self.ReweightedMixture = np.array(bigAllSampleSum_ar)
+            
+
     def normalize_reweighted_matrices(self):
         self.ReweightedNormedMixture =   self.ReweightedMixture / np.sum(self.ReweightedMixture, axis=0)
         self.ReweightedNormedBasis =   (self.ReweightedBasis.T / np.sum(self.ReweightedBasis.T, axis=0)).T
@@ -109,7 +177,7 @@ class NMFobject:
 
     def writeNMF(self, Basis_foutname, Mixture_foutname):
         np.save(Basis_foutname, self.Basis)
-        #very confusing but it must be Mixture here for internal self-consisten\ cy. Can be Mixture.T for CSV files
+        #very confusing but it must be Mixture here for internal self-consistency. Can be Mixture.T for CSV files
         np.save(Mixture_foutname, self.Mixture)
         
         
@@ -131,71 +199,106 @@ class NMFobject:
         pd.DataFrame(self.ReweightedNormedMixture.T).to_csv(Mixture_foutname)
 
 
-    def define_colorsA(self, mode='newSasha'):
-        if (mode=='newSasha'):
-            self.Comp_colors = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99', '#e31a1c', '#fdbf6f', '#ff7f00', '#cab2d6','#6a3d9a','#ffff99','#b15928','#ffd700', '#AAAAAA', '#C52892', '#00bbbb']
-        elif (mode=='Sasha'):
-            self.Comp_colors = ['red', 'tan', 'lime','blue','m','k','c', 'coral', 'indigo','darkgreen','orange','grey','gold', 'lightskyblue', 'peru', 'olive']
-        else:
-            self.Comp_colors = ["#A6CEE3", "#438EC0", "#63A8A0", "#98D277", "#3BA432", "#B89B74", "#F16667", "#E62F27", "#F9A963", "#FE982C", "#ED8F47", "#C3AAD2", "#7D54A5","#B9A499", "#EAD27A" ,"#B15928"]
-        if (self.Ncomps>16):
-            np.random.seed(666)
+
+    def define_colors(self, reordercolors=False):
+
+        maxassigned = 16
+        self.Comp_colors = ['#FFE500', '#FE8102', '#FF0000', '#07AF00', '#4C7D14', '#414613', '#05C1D9', '#0467FD', '#009588', '#BB2DD4', '#7A00FF', '#4A6876', '#08245B', '#B9461D', '#692108', '#C3C3C3']
+        neworder = np.array([16,10,7,11,2,12,1,8,4,15,14,5,9,6,3,13]).astype(int) - 1
+        
+        self.Comp_colors = list(np.array(self.Comp_colors)[neworder])
+        
+        if (self.Ncomps>maxassigned):
+            # somewhat defunct but whatever. Adds extra "random" colors if you use more than 16 
             from matplotlib import colors as mcolors
-            colornames = list(mcolors.CSS4_COLORS.keys())
-            count = 16
+            colornames = np.sort(list(mcolors.CSS4_COLORS.keys()))
+            count = maxassigned
+            np.random.seed(10)
+            myrandint = np.random.randint(len(colornames))
             while (count < self.Ncomps):
-                newcolor = colornames[np.random.randint(0,len(colornames))]
+                myrandint =    np.random.randint(len(colornames))
+                newcolor = colornames[myrandint]
                 trialcount = 0
                 while ((newcolor in self.Comp_colors) and (trialcount < 100)):
+                    print('what am i doing here')
                     newcolor = colornames[np.random.randint(0,len(colornames))]
                     trialcount+=1
+                print('new color ',count,newcolor)
                 self.Comp_colors.append(newcolor)
                 count+=1
 
 
 
-    def make_stacked_bar_plot(self, Nrelevant, BarMatrix, bargraph_out, names = [], plotClusterMode=False, barsortorder=[], clusterTopLabels=[], colormode='newSasha'):
+    def make_stacked_bar_plot(self, Nrelevant, BarMatrix, bargraph_out, names = [], plotClusterMode=False, barsortorder=[], clusterTopLabels=[], plot_title='', official_order = False, no_axis=False):
+    
+        # define barsortorder if one isn't provided 
         if len(barsortorder)<1:
             barsortorder = np.arange(Nrelevant)
+        
+        #define names if none are provided
         if len(names) < 1:
             names = [str(i) for i in range(Nrelevant)]
             names = np.array(names)
-        ttt = np.arange(Nrelevant)
+            
+        #Make a set of x coordinates for ticks
+        Xpositions = np.arange(Nrelevant)
+        
+        # start and end matrices for each matrix. This is to ensure that you can plot only Nrelevant vectors from the matrix if that is what you want
         start = 0
         end = Nrelevant
-        ground_pSample = ttt*0
-        self.define_colorsA(mode=colormode)
+        
+        self.define_colors()
+
+        if official_order:
+            WSO = np.array([7,5,15,9,12,14,3,8,13,2,4,6,16,11,10,1]).astype(int) - 1
+            BarMatrix = BarMatrix[WSO]
+        else:
+            WSO = np.arange(self.Ncomps)
+
+
+
+        
+        #this is really the only meaty part
         plt.clf()
         plt.figure(figsize=(150,40))
-        plt.bar(ttt[start:end], BarMatrix[0,start:end][barsortorder], color=self.Comp_colors[0],
-                 bottom=ground_pSample[start:end], alpha=1.0)
-        ground_pSample = BarMatrix[0,start:end][barsortorder]
-        for i in range(1,self.Ncomps):
-            plt.bar(ttt[start:end],BarMatrix[i,start:end][barsortorder], bottom = ground_pSample, color=self.Comp_colors[i], alpha=1.0)
+        
+        ground_pSample = np.zeros(len(Xpositions))
+        
+        for i in range(self.Ncomps):
+            plt.bar(Xpositions[start:end],BarMatrix[i,start:end][barsortorder], bottom = ground_pSample, color=self.Comp_colors[WSO[i]], alpha=1)
             ground_pSample = np.sum(BarMatrix[0: i+1,start:end], axis=0)[barsortorder]
-        increase_axis_fontsize()
+        
+        OH.increase_axis_fontsize()
+        
+        #axis labels - seems highly optional
         plt.ylabel('sum of signal in matrix',fontsize=70)
-        #plt.title('Full Sample',fontsize=70)
-        samplenamesize = 11
+        if (len(plot_title) > 0):
+	        plt.title(plot_title)
+	        
+	    #heuristic scaling of bottom
         samplenamesize = (1/Nrelevant)**0.5 * 300
-        #thebottom = 0.15
         thebottom = min([(1/Nrelevant)**0.3 * 1.2, 0.3])
+        
+        #i think this is largely defunct, but i guess this can make some extra labels on the top of the plot
         if(plotClusterMode):
-            plt.xticks(ttt, ttt.astype(str), rotation='vertical', fontsize=samplenamesize)
+            plt.xticks(Xpositions, Xpositions.astype(str), rotation='vertical', fontsize=samplenamesize)
             if len(clusterTopLabels) > 0:
                 ax = plt.gca()
                 ax2 = ax.twiny()
-                ax2.set_xticks(ttt)
+                ax2.set_xticks(Xpositions)
                 ax2.set_xticklabels(clusterTopLabels.astype(str), rotation=90, fontsize=samplenamesize)
-                #ax.xaxis.tick_top()
-                #plt.xticks(ttt, clusterTopLabels.astype(str), rotation='vertical', fontsize=samplenamesize)
+        
+        # default behavior 
         else:
-            plt.xticks(ttt, names[barsortorder], rotation='vertical', fontsize=samplenamesize)	
-        plot_margin = 5
+            plt.xticks(Xpositions, names[barsortorder], rotation='vertical', fontsize=samplenamesize)	
+            
+        #adjust it so that it fits in the fame
         plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=thebottom)
+        if (no_axis):
+            plt.axis('off')
+        
         plt.savefig(bargraph_out)
         plt.close()	
-        
         
         
         
@@ -213,7 +316,83 @@ class NMFobject:
             print('error, precision-recall curve only works for data between 0 and 1')
             return
 
-        customthreshes = [0.05, 0.1, 0.15, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6, 0.7, 0.8, 0.9]
+        customthreshes = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5,0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9,0.95]
+        recall_ar = []
+        precision_ar = []
+
+        if len(names) < 1:
+            print('filling in names')
+            names = np.arange(self.BasisD).astype(str)
+            
+        prec_recall_table = []
+        total_PR_talbe = []
+        for customthresh in customthreshes:
+            F1_ar = []
+            if(writefile):
+                f = open(filename_addon+'SampleCSthresh'+str(customthresh)+'.txt', 'w')
+            count = 0
+
+            totalTP = 0
+            totalTN = 0
+            totalFP = 0
+            totalFN = 0
+            for sample in range(self.BasisD):
+                DHSar_cut = data[sample]>customthresh
+                predDHSar_cut = self.Reconstruction[sample] > customthresh
+
+
+                TP = len(self.Reconstruction[sample][DHSar_cut * predDHSar_cut]) 
+                FP = len(self.Reconstruction[sample][predDHSar_cut * np.invert( DHSar_cut)])
+                TN = len(self.Reconstruction[sample][np.invert(predDHSar_cut) * np.invert(DHSar_cut)])
+                FN = len(self.Reconstruction[sample][np.invert(predDHSar_cut) * (DHSar_cut)])
+
+                if ((TP + FN) > 0 ):
+                    recall = TP / (TP + FN)
+                else: 
+                    recall = 0
+                if ((TP + FP) > 0 ):
+                    precision = TP / (TP + FP)
+                else:
+                    precision=0
+                accuracy = (TP + TN) /(len(self.Reconstruction[sample]))
+                if (precision + recall) == 0:
+                    F1 = 0
+                else:
+                    F1 = 2*(precision*recall)/(precision+recall)
+                F1_ar.append(F1)
+                totalTP += TP
+                totalTN += TN
+                totalFN += FN
+                totalFP += FP
+                
+                if (writefile):
+                    print(sample, names[count], TP, FP, TN, FN, recall, precision, accuracy, F1, file=f)
+                prec_recall_table.append([customthresh, sample, names[count], TP, FP, TN, FN, recall, precision, accuracy, F1])
+                
+                count +=1
+            print('Ncomps ',self.Ncomps, 'thresh ', customthresh, ' mean F1 score ',np.mean(np.array(F1_ar)))
+            total_PR_talbe.append([customthresh, totalTP, totalFP, totalTN, totalFN])
+        pd.DataFrame(total_PR_talbe, columns=['threshold', 'TP', 'FP', 'TN', 'FN']).to_csv(filename_addon+'TotalPR'+'.txt', sep='\t', index=False)
+        
+            
+        return pd.DataFrame(prec_recall_table, columns=['threshold', 'sample_number', 'sample_name', 'TP', 'FP', 'TN', 'FN', 'recall', 'precision', 'accuracy', 'F1'])
+        
+        
+        
+
+    def quick_precision_recall_curve(self, data, names=[], writefile=False, filename_addon=''):
+        if (len(self.Reconstruction)<1):
+            self.build_reconstruction()
+        print(data.shape, 'data')
+        print(self.Reconstruction.shape, 'reconstruction')
+        if (data.shape[0] != self.Reconstruction.shape[0] or data.shape[1] != self.Reconstruction.shape[1]):
+            print('error! data and reconstruciton dont have matching shapes', data.shape, self.Reconstruction.shape )
+            return
+        if (np.max(data) > 1 or np.min(data) < 0):
+            print('error, precision-recall curve only works for data between 0 and 1')
+            return
+
+        customthreshes = [0.3, 0.35, 0.4]
         recall_ar = []
         precision_ar = []
 
@@ -224,7 +403,8 @@ class NMFobject:
         for customthresh in customthreshes:
             F1_ar = []
             if(writefile):
-                f = open(today+'SampleCustomStats_thresh'+str(customthresh)+'_Ncomp'+str(self.Ncomps)+filename_addon+'.txt', 'w')
+                f = open(filename_addon+'SampleCSthresh'+str(customthresh)+'.txt', 'w')
+
             count = 0
 
             for sample in range(self.BasisD):
@@ -252,39 +432,81 @@ class NMFobject:
                     F1 = 2*(precision*recall)/(precision+recall)
                 F1_ar.append(F1)
                 if (writefile):
-                    print(sample, names[count], TP, FP, TN, FN, recall, precision, accuracy, F1, file=f)
-                prec_recall_table.append([customthresh, sample, names[count], TP, FP, TN, FN, recall, precision, accuracy, F1])
+                    print(sample, names[count].strip(' '), TP, FP, TN, FN, recall, precision, accuracy, F1, file=f)
+                prec_recall_table.append([customthresh, sample, names[count].strip(' '), TP, FP, TN, FN, recall, precision, accuracy, F1])
                 count +=1
             print('Ncomps ',self.Ncomps, 'thresh ', customthresh, ' mean F1 score ',np.mean(np.array(F1_ar)))
         return pd.DataFrame(prec_recall_table, columns=['threshold', 'sample_number', 'sample_name', 'TP', 'FP', 'TN', 'FN', 'recall', 'precision', 'accuracy', 'F1'])
+
+
+    def precision_recall_curveDHS(self, data, names=[], writefile=False, filename_addon=''):
+        #only works when objective matrix is known, and consists of entries 0/1. 
+        if (len(self.Reconstruction)<1):
+            self.build_reconstruction()
+        print(data.shape, 'data')
+        print(self.Reconstruction.shape, 'reconstruction')
+        if (data.shape[0] != self.Reconstruction.shape[0] or data.shape[1] != self.Reconstruction.shape[1]):
+            print('error! data and reconstruciton dont have matching shapes', data.shape, self.Reconstruction.shape )
+            return
+        if (np.max(data) > 1 or np.min(data) < 0):
+            print('error, precision-recall curve only works for data between 0 and 1')
+            return
+
+        customthreshes = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35]
+        recall_ar = []
+        precision_ar = []
+
+        if len(names) < 1:
+            print('filling in names')
+            names = np.arange(self.MixtureD).astype(str)
+        prec_recall_table = []
+        for customthresh in customthreshes:
+            F1_ar = []
+            if(writefile):
+                f = open(filename_addon+'DHSCSthresh'+str(customthresh)+'.txt', 'w')
+
+            count = 0
+
+            for DHS in range(self.MixtureD):
+                Sample_ar_cut = data[:,DHS]>customthresh
+                predSamplear_cut = self.Reconstruction[:,DHS] > customthresh
+
+
+                TP = len(self.Reconstruction[:,DHS][Sample_ar_cut * predSamplear_cut]) 
+                FP = len(self.Reconstruction[:,DHS][predSamplear_cut * np.invert( Sample_ar_cut)])
+                TN = len(self.Reconstruction[:,DHS][np.invert(predSamplear_cut) * np.invert(Sample_ar_cut)])
+                FN = len(self.Reconstruction[:,DHS][np.invert(predSamplear_cut) * (Sample_ar_cut)])
+
+                if ((TP + FN) > 0 ):
+                    recall = TP / (TP + FN)
+                else: 
+                    recall = 0
+                if ((TP + FP) > 0 ):
+                    precision = TP / (TP + FP)
+                else:
+                    precision=0
+                accuracy = (TP + TN) /(len(self.Reconstruction[:,DHS]))
+                if (precision + recall) == 0:
+                    F1 = 0
+                else:
+                    F1 = 2*(precision*recall)/(precision+recall)
+                F1_ar.append(F1)
+                if (writefile):
+                    print(DHS, names[count], TP, FP, TN, FN, recall, precision, accuracy, F1, file=f)
+                prec_recall_table.append([customthresh, DHS, names[count], TP, FP, TN, FN, recall, precision, accuracy, F1])
+                count +=1
+            print('Ncomps ',self.Ncomps, 'thresh ', customthresh, ' mean F1 score ',np.mean(np.array(F1_ar)))
+        return pd.DataFrame(prec_recall_table, columns=['threshold', 'DHS_number', 'DHS_name', 'TP', 'FP', 'TN', 'FN', 'recall', 'precision', 'accuracy', 'F1'])
+
         
-        
-        
-        
-    def compute_reweighted_matrices(self):
-    
-        bigAllDHSSum_ar = []
-        bigAllSampleSum_ar = []
-        
-        #formerly known as sansvar. The point of this is to attribute "new meaning" to components by reweighting the Basis by the Mixture and vice versa. Doing this allows for an interpretation where each component-vector in the Basis reflects #DHSs found in that sample and vice versa. 
-        
-        for i in range(self.Ncomps):
-            bongo = np.copy(self.Basis)
-            for k in range(self.Ncomps):
-                if (k!=i):
-                    bongo[:,k]*=0
-            sansvar = np.dot(bongo, self.Mixture)
-            bigAllDHSSum_ar.append(np.sum(sansvar[:,0:], axis=1))
-            bigAllSampleSum_ar.append(np.sum(sansvar[:,0:], axis=0))
-            del(sansvar)
-        
-        self.ReweightedBasis = np.array(bigAllDHSSum_ar).T
-        self.ReweightedMixture = np.array(bigAllSampleSum_ar)
-            
+
 
 
     def find_modules(self, data, ClustMult=4, chosenthresh = 0.35, cosdist_sample_thresh=0.3, cosdist_DHS_thresh=0.3 ):
     
+        #DEFUNCT DEFUNCT DEFUNCT
+        
+        
         #initially only implementing SampleNormed basis
         #but with a fix to make the DHSappearCut  more self-consistent
         
