@@ -71,5 +71,9 @@ for my_cat_str in categories:
     MetaData[my_cat_str].fillna('None', inplace=True)
     (SystemChart,SystemTypes) = OMD.make_significance_plot(newMetaData, a.Basis, my_cat_str, newrosetta,thecmap='inferno', NMFCOMPS=myNMFcomps,filename_addon=foutname_base, write_mode=True)
     
+    # for PCA mode:
+    #(SystemChart,SystemTypes) = make_significance_plot(newMetaData, a.Basis, my_cat_str, newrosetta,thecmap='inferno', NMFCOMPS=myNMFcomps, write_mode=True,filename_addon=finname_base+'PCA',PCAmode=True)
+
+    
     # at the moment, homogeneity is not very useful / defunct 
     #make_significance_plot_homogeneity(MetaData, homogeneity, my_cat_str, rosetta, thecmap='inferno', NMFCOMPS=myNMFcomps)
