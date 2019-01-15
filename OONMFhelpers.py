@@ -5,6 +5,22 @@ import time
 from datetime import date
 import numpy as np
 today = str(date.today())
+
+'''
+functions:
+
+mytime - returns the time as a string
+
+get_today - returns date as string
+
+increase_axis_fontsize - increases the label and tick size on the current plot
+
+get_barsortorder - this is for ordering our stacked bar graphs. It basically sorts the vectors by component, one at a time. 
+
+get_barsortorder_OfficialOrder - probably does not deserve to be a function on its own, but whatever. It illustrates how to make an arbitrary order vs. natural order.
+
+'''
+
 if (ClusterMode):
 	import matplotlib
 	matplotlib.use('Agg')
@@ -14,6 +30,10 @@ def mytime():
     ts = time.time()
     sttime = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d_%H:%M:%S')
     return sttime
+    
+def get_today():
+	today = str(date.today())
+	return today
 
 def increase_axis_fontsize(axis_fontsize=30):
     ax = plt.gca()
@@ -26,9 +46,6 @@ def increase_axis_fontsize(axis_fontsize=30):
         label.set_fontsize(axis_fontsize)
         label.set_family('serif')
 
-def get_today():
-	today = str(date.today())
-	return today
 
 def get_barsortorder(relevantMatrix):
     # assumes rows are the data, columns are NMF components
