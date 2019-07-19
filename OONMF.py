@@ -31,6 +31,10 @@ define_colors - this sets the color scheme that we use for visualization
 
 make_stacked_bar_plot - make our signature stacked bar plot. Should this really be part of the default library? I don't know but that's how I've decided to arrange things
 
+make_anatomy_key - make quick visual showing the labels we associate with each NMF color in ENCODE project
+
+make_standard_heatmap_plot - make a more traditional (matrix heatmap) visualization. 
+
 precision_recall_curve - only works when objective matrix is known, and consists of entries 0/1. Compares reconstruction to the original data, using sort of precision/recall mechanics for samples. 
 
 quick_precision_recall_curve - same as above, but only uses three threshold values - 0.3, 0.35, 0.4. Found to be the ideal choices.
@@ -41,7 +45,7 @@ find_modules - DEFUNCT search for some patterns in the matrix.
 
 '''
 
-ClusterMode = True
+ClusterMode = False
 import sys
 import numpy as np
 import pandas as pd
@@ -110,6 +114,7 @@ class NMFobject:
         self.Mixture = model.components_
         self.BasisD = self.Basis.shape[0]
         self.MixtureD = self.Mixture.shape[1]
+        print('returning reconstruction error')
         return model.reconstruction_err_
 
     def performNMF_KL(self, data, randomseed=0):
@@ -298,17 +303,56 @@ class NMFobject:
             plt.axis('off')
         
         plt.savefig(bargraph_out)
-        plt.close()	
+        plt.show()
+        plt.close()
+        
+    def make_anatomy_key(self, legendout=''):
+        self.define_colors()
+        strings_of_labels = ['Tissue invariant', 'Stromal A', 'Embryonic / primitive', 'Stromal B', 'Lymphoid', 'Renal / cancer', 'Placental','Neural','Cardiac','Organ devel. / renal','Pulmonary devel.','Musculoskeletal',\
+                     'Digestive','Vascular / endothelial','Myeloid / erythroid', 'Cancer / epithelial']
+        strings_of_labels = np.array(strings_of_labels)
+        fig, ax = plt.subplots(1, 2, figsize = (8,4))
+        ax[1].set_xlim([-5, 5])
+        for i in range(8):
+            ax[1].hlines(i+1, 0, 1, color=self.Comp_colors[15-i], lw=20)
+            ax[1].text(1.2, i+1-0.2, strings_of_labels[15-i],fontsize=15)
+        ax[1].axis('off')
+        ax[0].set_xlim([-5, 5])
+
+        for i in range(8, 16):
+            ax[0].hlines(i+1, 0, 1, color=self.Comp_colors[15-i], lw=20)
+            ax[0].text(1.2, i+1-0.2, strings_of_labels[15-i],fontsize=15)
+        ax[0].axis('off')
+        plt.savefig(legendout)
+        plt.show()
+        plt.close()
+    
+
+    def make_standard_heatmap_plot(self, Nrelevant, BarMatrix, bargraph_out, names = [], plotClusterMode=False, barsortorder=[], clusterTopLabels=[], plot_title='', official_order = False, no_axis=False):
+        plt.figure(figsize=(150,40))
+        if len(barsortorder)<1:
+            barsortorder = np.arange(Nrelevant)
+        
+        #define names if none are provided
+        if len(names) < 1:
+            names = [str(i) for i in range(Nrelevant)]
+            names = np.array(names)
+            
+        plt.imshow(BarMatrix[barsortorder].T, cmap='Blues', aspect='auto')
+        plt.xticks(np.arange(len(barsortorder)), names.astype(str), rotation=90, fontsize= (1/Nrelevant)**0.5 * 300 )
+        plt.savefig(bargraph_out, bbox_inches='tight', transparent=True)
+        plt.show()	
         
         
         
         
-    def precision_recall_curve(self, data, names=[], writefile=False, filename_addon=''):
+    def precision_recall_curve(self, data, names=[], write_verbose=False, filename_addon='', verbose=False):
         #only works when objective matrix is known, and consists of entries 0/1. 
         if (len(self.Reconstruction)<1):
             self.build_reconstruction()
-        print(data.shape, 'data')
-        print(self.Reconstruction.shape, 'reconstruction')
+        if verbose:
+            print(data.shape, 'data')
+            print(self.Reconstruction.shape, 'reconstruction')
         if (data.shape[0] != self.Reconstruction.shape[0] or data.shape[1] != self.Reconstruction.shape[1]):
             print('error! data and reconstruciton dont have matching shapes', data.shape, self.Reconstruction.shape )
             return
@@ -321,14 +365,15 @@ class NMFobject:
         precision_ar = []
 
         if len(names) < 1:
-            print('filling in names')
+            if verbose:
+                print('filling in names')
             names = np.arange(self.BasisD).astype(str)
             
-        prec_recall_table = []
+        sample_based_table = []
         total_PR_talbe = []
         for customthresh in customthreshes:
             F1_ar = []
-            if(writefile):
+            if(write_verbose):
                 f = open(filename_addon+'SampleCSthresh'+str(customthresh)+'.txt', 'w')
             count = 0
 
@@ -365,22 +410,25 @@ class NMFobject:
                 totalFN += FN
                 totalFP += FP
                 
-                if (writefile):
+                if (write_verbose):
                     print(sample, names[count], TP, FP, TN, FN, recall, precision, accuracy, F1, file=f)
-                prec_recall_table.append([customthresh, sample, names[count], TP, FP, TN, FN, recall, precision, accuracy, F1])
+                sample_based_table.append([customthresh, sample, names[count], TP, FP, TN, FN, recall, precision, accuracy, F1])
                 
                 count +=1
-            print('Ncomps ',self.Ncomps, 'thresh ', customthresh, ' mean F1 score ',np.mean(np.array(F1_ar)))
+            if verbose:
+                print('Ncomps ',self.Ncomps, 'thresh ', customthresh, ' mean F1 score ',np.mean(np.array(F1_ar)))
             total_PR_talbe.append([customthresh, totalTP, totalFP, totalTN, totalFN])
-        pd.DataFrame(total_PR_talbe, columns=['threshold', 'TP', 'FP', 'TN', 'FN']).to_csv(filename_addon+'TotalPR'+'.txt', sep='\t', index=False)
         
-            
-        return pd.DataFrame(prec_recall_table, columns=['threshold', 'sample_number', 'sample_name', 'TP', 'FP', 'TN', 'FN', 'recall', 'precision', 'accuracy', 'F1'])
+        total_PR_tableDF = pd.DataFrame(total_PR_talbe, columns=['threshold', 'TP', 'FP', 'TN', 'FN'])
+        total_PR_tableDF.to_csv(filename_addon+'TotalPR'+'.txt', sep='\t', index=False)
+        
+        sample_based_tableDF = pd.DataFrame(sample_based_table, columns=['threshold', 'sample_number', 'sample_name', 'TP', 'FP', 'TN', 'FN', 'recall', 'precision', 'accuracy', 'F1'])
+        return [sample_based_tableDF,total_PR_tableDF]
         
         
         
 
-    def quick_precision_recall_curve(self, data, names=[], writefile=False, filename_addon=''):
+    def quick_precision_recall_curve(self, data, names=[], write_verbose=False, filename_addon=''):
         if (len(self.Reconstruction)<1):
             self.build_reconstruction()
         print(data.shape, 'data')
@@ -399,10 +447,10 @@ class NMFobject:
         if len(names) < 1:
             print('filling in names')
             names = np.arange(self.BasisD).astype(str)
-        prec_recall_table = []
+        sample_based_table = []
         for customthresh in customthreshes:
             F1_ar = []
-            if(writefile):
+            if(write_verbose):
                 f = open(filename_addon+'SampleCSthresh'+str(customthresh)+'.txt', 'w')
 
             count = 0
@@ -431,15 +479,15 @@ class NMFobject:
                 else:
                     F1 = 2*(precision*recall)/(precision+recall)
                 F1_ar.append(F1)
-                if (writefile):
+                if (write_verbose):
                     print(sample, names[count].strip(' '), TP, FP, TN, FN, recall, precision, accuracy, F1, file=f)
-                prec_recall_table.append([customthresh, sample, names[count].strip(' '), TP, FP, TN, FN, recall, precision, accuracy, F1])
+                sample_based_table.append([customthresh, sample, names[count].strip(' '), TP, FP, TN, FN, recall, precision, accuracy, F1])
                 count +=1
             print('Ncomps ',self.Ncomps, 'thresh ', customthresh, ' mean F1 score ',np.mean(np.array(F1_ar)))
-        return pd.DataFrame(prec_recall_table, columns=['threshold', 'sample_number', 'sample_name', 'TP', 'FP', 'TN', 'FN', 'recall', 'precision', 'accuracy', 'F1'])
+        return pd.DataFrame(sample_based_table, columns=['threshold', 'sample_number', 'sample_name', 'TP', 'FP', 'TN', 'FN', 'recall', 'precision', 'accuracy', 'F1'])
 
 
-    def precision_recall_curveDHS(self, data, names=[], writefile=False, filename_addon=''):
+    def precision_recall_curveDHS(self, data, names=[], write_verbose=False, filename_addon=''):
         #only works when objective matrix is known, and consists of entries 0/1. 
         if (len(self.Reconstruction)<1):
             self.build_reconstruction()
@@ -459,10 +507,10 @@ class NMFobject:
         if len(names) < 1:
             print('filling in names')
             names = np.arange(self.MixtureD).astype(str)
-        prec_recall_table = []
+        sample_based_table = []
         for customthresh in customthreshes:
             F1_ar = []
-            if(writefile):
+            if(write_verbose):
                 f = open(filename_addon+'DHSCSthresh'+str(customthresh)+'.txt', 'w')
 
             count = 0
@@ -491,12 +539,12 @@ class NMFobject:
                 else:
                     F1 = 2*(precision*recall)/(precision+recall)
                 F1_ar.append(F1)
-                if (writefile):
+                if (write_verbose):
                     print(DHS, names[count], TP, FP, TN, FN, recall, precision, accuracy, F1, file=f)
-                prec_recall_table.append([customthresh, DHS, names[count], TP, FP, TN, FN, recall, precision, accuracy, F1])
+                sample_based_table.append([customthresh, DHS, names[count], TP, FP, TN, FN, recall, precision, accuracy, F1])
                 count +=1
             print('Ncomps ',self.Ncomps, 'thresh ', customthresh, ' mean F1 score ',np.mean(np.array(F1_ar)))
-        return pd.DataFrame(prec_recall_table, columns=['threshold', 'DHS_number', 'DHS_name', 'TP', 'FP', 'TN', 'FN', 'recall', 'precision', 'accuracy', 'F1'])
+        return pd.DataFrame(sample_based_table, columns=['threshold', 'DHS_number', 'DHS_name', 'TP', 'FP', 'TN', 'FN', 'recall', 'precision', 'accuracy', 'F1'])
 
         
 

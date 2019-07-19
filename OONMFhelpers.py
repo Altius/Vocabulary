@@ -1,4 +1,4 @@
-ClusterMode = True
+ClusterMode = False
 
 import datetime
 import time
