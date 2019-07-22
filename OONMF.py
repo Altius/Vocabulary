@@ -85,7 +85,7 @@ class NMFobject:
 
     
     def matrix_input_name(self, Basis_finname='', Mixture_finname=''):
-        if (len(Basis_finname) < 1 or len(Mixture_finname) < 1):
+        if (len(Basis_finname) < 1):
             print('syntax: read_matrix(Basis_finname, Mixture_finname)')
             sys.exit()
         self.Basis_finname = Basis_finname
