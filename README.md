@@ -29,14 +29,14 @@ Note: requires Python 3 with `scikit-learn`, `numpy`, `scipy`, `matplotlib`, `pa
 
 # TODO 
 - More technical stuff
--- PCA vs NMF
--- KL divergence vs L2 norm for NMF objective function
--- comparing data to random noise matrix
+  - PCA vs NMF
+  - KL divergence vs L2 norm for NMF objective function
+  - comparing data to random noise matrix
 - setting up GREAT runs 
 - fisher tests for motif pairs in G2 components
 - 2.5 D NMF - analysis of motif components
 - Regulatory domains done 3 ways
--- "Regulatory Potential"
--- GMM / EM approach (TBD) 
--- Likelihood function based on chosen constraints
+  - "Regulatory Potential"
+  - GMM / EM approach (TBD) 
+  - Likelihood function based on chosen constraints
 - comparison of reg domains to gene expression. 
