@@ -25,14 +25,15 @@ Note: requires Python 3 with `scikit-learn`, `numpy`, `scipy`, `matplotlib`, `pa
 - OONMF analyzing results from ENCODE DNase-Seq .ipynb - this takes us through the process of visualizing the NMF decomposition with 16 components on Presence/Absence matrix for 733-sample masterlist. Also shows UMAP visualization and projection of new pancreatic cancer samples into the space.
 - OONMF how we chose 16 components - unsupervised metrics.ipynb - this notebook shows some analysis of unsupervised metrics that we used in our decision making process for 16 components.
 - OONMF using metadata for semi-supervised selection of k .ipynb - this notebook shows the additional constraints we obtain by trying to statistically associate NMF components with metadata labels for the biosamples
-
+- OONMF the relationship between components, samples per DHS, and systems per DHS - this notebook takes a look at the DHS x Component matrix, and explores how the number of non-zero NMF component loadings per DHS correlates with other things.
 
 # TODO 
 - More technical stuff
   - PCA vs NMF
   - KL divergence vs L2 norm for NMF objective function
   - comparing data to random noise matrix
-- setting up GREAT runs 
+- comparing all the different groups and calculating statistics about them
+- setting up & analyzing GREAT runs 
 - fisher tests for motif pairs in G2 components
 - 2.5 D NMF - analysis of motif components
 - Regulatory domains done 3 ways
