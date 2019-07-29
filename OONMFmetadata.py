@@ -23,13 +23,13 @@ get_rosetta - this is an important one. It figures out how to reorder the names 
 '''
 
 
-def make_significance_plot(X, Basis, Category_str, my_rosetta, thecmap='viridis', NMFCOMPS=16, save=True, filename_addon='', PCAmode=False, write_mode=False, verbose=True):
-    CategoryType = X[Category_str].value_counts().keys()[0:20]
+def make_significance_plot(X, Basis, Category_str, my_rosetta, thecmap='viridis', NMFCOMPS=16, save=True, filename_addon='', PCAmode=False, write_mode=False, verbose=True, maxcats=20):
+    CategoryType = X[Category_str].value_counts().keys()[0:maxcats]
     CategoryCats = X[Category_str].values[my_rosetta]
 
     list_of_sig = []
 
-    for i, cat in enumerate(CategoryType[0:20]):
+    for i, cat in enumerate(CategoryType[0:maxcats]):
         growthlist = [cat]
         if verbose:
             print('*****************')
@@ -38,7 +38,7 @@ def make_significance_plot(X, Basis, Category_str, my_rosetta, thecmap='viridis'
         growthlist+=[len(CatCut[CatCut])]
         for i in range(NMFCOMPS):
             car = mannwhitneyu(Basis[:,i][CatCut], Basis[:,i][~CatCut],alternative='greater')
-            Ncats = min(20, len(CategoryType[0:20]))
+            Ncats = min(maxcats, len(CategoryType[0:maxcats]))
             adjustedp = (car[1]+1e-30)*NMFCOMPS*Ncats
             growthlist += [-1*np.log10(adjustedp)]
         list_of_sig.append(growthlist)
@@ -53,14 +53,14 @@ def make_significance_plot(X, Basis, Category_str, my_rosetta, thecmap='viridis'
     plt.clf()
     
     myfs = 45
-    plt.figure(figsize=(35,len(CategoryType[0:20])*2))
+    plt.figure(figsize=(35,len(CategoryType[0:maxcats])*2))
     plt.imshow(CategoryChartMatrix, cmap=thecmap, vmin=-3, vmax=30)
     if (PCAmode):
         plt.xlabel('Principal Component',fontsize=myfs)
     else:
         plt.xlabel('NMF component',fontsize=myfs)
     plt.ylabel(Category_str,fontsize=myfs)
-    plt.yticks(np.arange(Ncats), CategoryType[0:20], rotation='horizontal',fontsize=myfs)
+    plt.yticks(np.arange(Ncats), CategoryType[0:maxcats], rotation='horizontal',fontsize=myfs)
     plt.xticks(np.arange(NMFCOMPS), (np.arange(NMFCOMPS)+1).astype(str), rotation='vertical',fontsize=myfs)
     cbar = plt.colorbar(fraction=0.046, pad=0.04)
     cbar.set_label(r'- $\log_{10} (p*$'+str(NMFCOMPS)+r'$*$'+str(Ncats)+r'$)$',fontsize=myfs)
@@ -72,18 +72,18 @@ def make_significance_plot(X, Basis, Category_str, my_rosetta, thecmap='viridis'
         plt.savefig(filename_addon +  Category_str+'MWplot.pdf', bbox_inches='tight')
     plt.show()
 
-    return (CategoryChartMatrix, CategoryType[0:20])
+    return (CategoryChartMatrix, CategoryType[0:maxcats])
     
 
-def make_significance_plot_WSO(X, Basis, Category_str, my_rosetta, thecmap='binary', NMFCOMPS=16, save=True, filename_addon='', PCAmode=False, write_mode=False, verbose=True):
-    CategoryType = X[Category_str].value_counts().keys()[0:20]
+def make_significance_plot_WSO(X, Basis, Category_str, my_rosetta, thecmap='binary', NMFCOMPS=16, save=True, filename_addon='', PCAmode=False, write_mode=False, verbose=True, maxcats=20):
+    CategoryType = X[Category_str].value_counts().keys()[0:maxcats]
     CategoryCats = X[Category_str].values[my_rosetta]
     
     CategoryType = np.sort(CategoryType)
 
     list_of_sig = []
 
-    for i, cat in enumerate(CategoryType[0:20]):
+    for i, cat in enumerate(CategoryType[0:maxcats]):
         growthlist = [cat]
         if verbose:
             print('*****************')
@@ -92,7 +92,7 @@ def make_significance_plot_WSO(X, Basis, Category_str, my_rosetta, thecmap='bina
         growthlist+=[len(CatCut[CatCut])]
         for i in range(NMFCOMPS):
             car = mannwhitneyu(Basis[:,i][CatCut], Basis[:,i][~CatCut],alternative='greater')
-            Ncats = min(20, len(CategoryType[0:20]))
+            Ncats = min(maxcats, len(CategoryType[0:maxcats]))
             adjustedp = (car[1]+1e-30)*NMFCOMPS*Ncats
             growthlist += [-1*np.log10(adjustedp)]
         list_of_sig.append(growthlist)
@@ -107,14 +107,14 @@ def make_significance_plot_WSO(X, Basis, Category_str, my_rosetta, thecmap='bina
     plt.clf()
     
     myfs = 45
-    plt.figure(figsize=(35,len(CategoryType[0:20])*2))
+    plt.figure(figsize=(35,len(CategoryType[0:maxcats])*2))
     plt.imshow(CategoryChartMatrix, cmap=thecmap, vmin=-3, vmax=30)
     if (PCAmode):
         plt.xlabel('Principal Component',fontsize=myfs)
     else:
         plt.xlabel('NMF component',fontsize=myfs)
     plt.ylabel(Category_str,fontsize=myfs)
-    plt.yticks(np.arange(Ncats), CategoryType[0:20], rotation='horizontal',fontsize=myfs)
+    plt.yticks(np.arange(Ncats), CategoryType[0:maxcats], rotation='horizontal',fontsize=myfs)
     plt.xticks(np.arange(NMFCOMPS), (np.arange(NMFCOMPS)+1).astype(str), rotation='vertical',fontsize=myfs)
     cbar = plt.colorbar(fraction=0.046, pad=0.04)
     cbar.set_label(r'- $\log_{10} (p*$'+str(NMFCOMPS)+r'$*$'+str(Ncats)+r'$)$',fontsize=myfs)
@@ -126,17 +126,17 @@ def make_significance_plot_WSO(X, Basis, Category_str, my_rosetta, thecmap='bina
         plt.savefig(filename_addon +  Category_str+'MWplot.pdf', bbox_inches='tight')
     plt.show()
 
-    return (CategoryChartMatrix, CategoryType[0:20])
+    return (CategoryChartMatrix, CategoryType[0:maxcats])
         
 
 
-def make_significance_plot_homogeneity(X, homogeneity, Category_str, my_rosetta, thecmap='viridis', NMFCOMPS=16, save=True,filename_addon='', verbose=True):
-    CategoryType = X[Category_str].value_counts().keys()[0:20]
+def make_significance_plot_homogeneity(X, homogeneity, Category_str, my_rosetta, thecmap='viridis', NMFCOMPS=16, save=True,filename_addon='', verbose=True, maxcats=20):
+    CategoryType = X[Category_str].value_counts().keys()[0:maxcats]
     CategoryCats = X[Category_str].values[my_rosetta]
 
     list_of_sig = []
 
-    for i, cat in enumerate(CategoryType[0:20]):
+    for i, cat in enumerate(CategoryType[0:maxcats]):
         growthlist = [cat]
         if verbose:
             print('*****************')
@@ -152,7 +152,7 @@ def make_significance_plot_homogeneity(X, homogeneity, Category_str, my_rosetta,
         if verbose:
             print ('mean homogeneity of ',cat,np.mean(homogeneity[CatCut]))
             print ('mean homogeneity of anti-',cat,np.mean(homogeneity[~CatCut]))
-        Ncats = min(20, len(CategoryType[0:20]))
+        Ncats = min(maxcats, len(CategoryType[0:maxcats]))
         adjustedp = (car[1]+1e-30)*1*Ncats
         growthlist += [-1*np.log10(adjustedp)]
 
@@ -167,11 +167,11 @@ def make_significance_plot_homogeneity(X, homogeneity, Category_str, my_rosetta,
     CategoryChartMatrix = CategoryChart.values[:,2:].astype(float)
 
     plt.clf()
-    plt.figure(figsize=(len(CategoryType[0:20])*2,6))
+    plt.figure(figsize=(len(CategoryType[0:maxcats])*2,6))
     plt.imshow(CategoryChartMatrix.T, cmap=thecmap, vmin=-3, vmax=15)
 
     plt.xlabel(Category_str,fontsize=25)
-    plt.xticks(np.arange(Ncats), CategoryType[0:20], rotation='vertical',fontsize=25)
+    plt.xticks(np.arange(Ncats), CategoryType[0:maxcats], rotation='vertical',fontsize=25)
 
     cbar = plt.colorbar(fraction=0.046, pad=0.04, ticklabel_size=24)
     cbar.set_label(r'- $\log_{10} (p*$'+str(Ncats)+r'$)$',fontsize=25)
@@ -184,7 +184,7 @@ def make_significance_plot_homogeneity(X, homogeneity, Category_str, my_rosetta,
         plt.savefig(filename_addon +  Category_str+'MWhom_plot.pdf')
     plt.show()
 
-    return (CategoryChartMatrix, CategoryType[0:20])
+    return (CategoryChartMatrix, CategoryType[0:maxcats])
 
 
 def get_rosetta(MetaDataMat, names):
