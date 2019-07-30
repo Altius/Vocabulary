@@ -9,13 +9,13 @@ Because I am not always good, I also have a non-object-oriented implementation o
 To run the code as we did in the ENCODE 3 masterlist paper witk `k=16`, simply download the repository and run:
 
 ```
-python OONMF_compute_presence_NNDSVD_O.py
+python scripts/OONMF_compute_presence_NNDSVD_O.py
 ```
 
 to run multiple iterations at once, instead run 
 
 ```
-python OONMF_multirun.py
+python scripts/OONMF_multirun.py
 ```
 
 Note: requires Python 3 with `scikit-learn`, `numpy`, `scipy`, `matplotlib`, `pandas` installations.
@@ -32,7 +32,7 @@ Note: requires Python 3 with `scikit-learn`, `numpy`, `scipy`, `matplotlib`, `pa
   - PCA vs NMF
   - KL divergence vs L2 norm for NMF objective function
   - comparing data to random noise matrix
-- comparing all the different groups and calculating statistics about them
+- comparing all the different groups and calculating statistics about them - DONE 
 - setting up & analyzing GREAT runs 
 - fisher tests for motif pairs in G2 components
 - 2.5 D NMF - analysis of motif components
