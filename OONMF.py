@@ -234,7 +234,7 @@ class NMFobject:
 
 
 
-    def make_stacked_bar_plot(self, Nrelevant, BarMatrix, bargraph_out, names = [], plotClusterMode=False, barsortorder=[], clusterTopLabels=[], plot_title='', official_order = False, no_axis=False):
+    def make_stacked_bar_plot(self, Nrelevant, BarMatrix, bargraph_out, names = [], plotClusterMode=False, barsortorder=[], clusterTopLabels=[], plot_title='', official_order = False, no_axis=False, figdim1 = 150, figdim2 = 40):
     
         # define barsortorder if one isn't provided 
         if len(barsortorder)<1:
@@ -265,7 +265,7 @@ class NMFobject:
         
         #this is really the only meaty part
         plt.clf()
-        plt.figure(figsize=(150,40))
+        plt.figure(figsize=(figdim1,figdim2))
         
         ground_pSample = np.zeros(len(Xpositions))
         
@@ -328,8 +328,8 @@ class NMFobject:
         plt.close()
     
 
-    def make_standard_heatmap_plot(self, Nrelevant, BarMatrix, bargraph_out, names = [], plotClusterMode=False, barsortorder=[], clusterTopLabels=[], plot_title='', official_order = False, no_axis=False):
-        plt.figure(figsize=(150,40))
+    def make_standard_heatmap_plot(self, Nrelevant, BarMatrix, bargraph_out, names = [], plotClusterMode=False, barsortorder=[], clusterTopLabels=[], plot_title='', official_order = False, no_axis=False, figdim1 = 150, figdim2 = 40):
+        plt.figure(figsize=(figdim1,figdim2))
         if len(barsortorder)<1:
             barsortorder = np.arange(Nrelevant)
         
