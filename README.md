@@ -28,7 +28,13 @@ Note: requires Python 3 with `scikit-learn`, `numpy`, `scipy`, `matplotlib`, `pa
 - Chapter 6 dividing DHSs into groups based on their component mixture.ipynb - this notebook introduces the idea of dividing the DHSs into "chromatic groups". It shows which component combinations are most common for DHSs that consist of 1, 2, or more different NMF components.
 - Chapter 7 visualize motif cluster projection.ipynb - Using a method we call "2.5D NMF", we project regulatory factor motifs into the coordinate system defined by our biosample x DHS matrix. Here, we visualize these motifs in our coordinate system, and examine the reconstruction accuracy. We also compare with motif enrichment.
 - Chapter 8 understanding the relationship between projected motifs and DHSs.ipynb - here we explore the possibility of using the projected motif component loadings to find the DHSs that actually contain those motifs. It works ok but not great.
+- Chapter 9 This notebook demonstrates how I set up GREAT runs 
 
+Here are a few technical notebooks i haven't had as much time to annotate
+these can be found in  `notebooks/technical/` 
+- 8-15-19 check best model for all chr.ipynb this shows how we selected optimal paramters for the maximum likelihood model
+- 8-15-19 new parameter grid search.ipynb this notebook documents how i used the maximum likeliihood model to find the boundaries of the regulatory domain of genes
+- 9-03-19 fiducial results of parameter search.ipynb this notebook shows how i created the "Gene DHS masterlist" file
 
 
 # TODO 
