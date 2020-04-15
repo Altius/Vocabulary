@@ -23,9 +23,6 @@ normalize_reweighted_matrices - normalize the above matrices
 writeNMF - write numpy binary files of Basis and Mixture. Mixture is not transposed in this case, preserving the NC x NDHS dimensionality
 
 writeNMF_CSV - write CSV file for Basis and Mixture
-writeNMFnormed_CSV - same as above but for normed version
-writeNMFreweighted_CSV - same as above but for reweighted version
-writeNMFreweighted_normed_CSV - same as above but for normed, reweighted version
 
 define_colors - this sets the color scheme that we use for visualization
 
@@ -40,8 +37,6 @@ precision_recall_curve - only works when objective matrix is known, and consists
 quick_precision_recall_curve - same as above, but only uses three threshold values - 0.3, 0.35, 0.4. Found to be the ideal choices.
 
 precision_recall_curveDHS - uses the same method, but now computes precision/recall per DHS rather than per sample.
-
-find_modules - DEFUNCT search for some patterns in the matrix. 
 
 '''
 
@@ -91,11 +86,21 @@ class NMFobject:
         self.Basis_finname = Basis_finname
         self.Mixture_finname = Mixture_finname
 
-    def read_matrix_input(self):
-        self.Basis = np.load(self.Basis_finname)
+    def read_matrix_input(self, compressed = True):
+        import gzip
+        fn = self.Basis_finname
+        if compressed: 
+            fn = gzip.GzipFile(self.Basis_finname+'.gz', "r")
+
+        self.Basis = np.load(fn)
         self.BasisD = self.Basis.shape[0]
+
         if (len(self.Mixture_finname)>0):
-            self.Mixture = np.load(self.Mixture_finname)
+            fn = self.Mixture_finname
+            if compressed: 
+                fn = gzip.GzipFile(self.Mixture_finname+'.gz', "r")
+
+            self.Mixture = np.load(fn)
             self.MixtureD = self.Mixture.shape[1]
         
         
@@ -180,29 +185,21 @@ class NMFobject:
         self.ReweightedNormedBasis =   (self.ReweightedBasis.T / np.sum(self.ReweightedBasis.T, axis=0)).T
 
 
-    def writeNMF(self, Basis_foutname, Mixture_foutname):
-        np.save(Basis_foutname, self.Basis)
+    def writeNMF(self, Basis_foutname, Mixture_foutname, compressed=True):
+        import gzip
+        f = gzip.GzipFile(Basis_foutname+'.gz', "w")
+        np.save(f, self.Basis)
+        f.close()
+
         #very confusing but it must be Mixture here for internal self-consistency. Can be Mixture.T for CSV files
-        np.save(Mixture_foutname, self.Mixture)
+        f = gzip.GzipFile(Mixture_foutname+'.gz', "w")
+        np.save(f, self.Mixture)
+        f.close()
         
         
-        
-    def writeNMF_CSV(self, Basis_foutname, Mixture_foutname):
-        pd.DataFrame(self.Basis).to_csv(Basis_foutname)
-        pd.DataFrame(self.Mixture.T).to_csv(Mixture_foutname)
-
-    def writeNMFnormed_CSV(self, Basis_foutname, Mixture_foutname):
-        pd.DataFrame(self.NormedBasis).to_csv(Basis_foutname)
-        pd.DataFrame(self.NormedMixture.T).to_csv(Mixture_foutname)
-
-    def writeNMFreweighted_CSV(self, Basis_foutname, Mixture_foutname):
-        pd.DataFrame(self.ReweightedBasis).to_csv(Basis_foutname)
-        pd.DataFrame(self.ReweightedMixture.T).to_csv(Mixture_foutname)
-
-    def writeNMFreweighted_normed_CSV(self, Basis_foutname, Mixture_foutname):
-        pd.DataFrame(self.ReweightedNormedBasis).to_csv(Basis_foutname)
-        pd.DataFrame(self.ReweightedNormedMixture.T).to_csv(Mixture_foutname)
-
+    def writeNMF_CSV(self, Basis_foutname, Mixture_foutname, compressed=True):
+        pd.DataFrame(self.Basis).to_csv(Basis_foutname+'.gz', compression='infer')
+        pd.DataFrame(self.Mixture.T).to_csv(Mixture_foutname+'.gz', compression='infer')
 
 
     def define_colors(self, reordercolors=False):
@@ -259,8 +256,6 @@ class NMFobject:
             BarMatrix = BarMatrix[WSO]
         else:
             WSO = np.arange(self.Ncomps)
-
-
 
         
         #this is really the only meaty part
@@ -344,8 +339,6 @@ class NMFobject:
         plt.show()	
         
         
-        
-        
     def precision_recall_curve(self, data, names=[], write_verbose=False, filename_addon='', verbose=False):
         #only works when objective matrix is known, and consists of entries 0/1. 
         if (len(self.Reconstruction)<1):
@@ -424,8 +417,6 @@ class NMFobject:
         
         sample_based_tableDF = pd.DataFrame(sample_based_table, columns=['threshold', 'sample_number', 'sample_name', 'TP', 'FP', 'TN', 'FN', 'recall', 'precision', 'accuracy', 'F1'])
         return [sample_based_tableDF,total_PR_tableDF]
-        
-        
         
 
     def quick_precision_recall_curve(self, data, names=[], write_verbose=False, filename_addon=''):
@@ -546,133 +537,4 @@ class NMFobject:
             print('Ncomps ',self.Ncomps, 'thresh ', customthresh, ' mean F1 score ',np.mean(np.array(F1_ar)))
         return pd.DataFrame(sample_based_table, columns=['threshold', 'DHS_number', 'DHS_name', 'TP', 'FP', 'TN', 'FN', 'recall', 'precision', 'accuracy', 'F1'])
 
-        
-
-
-
-    def find_modules(self, data, ClustMult=4, chosenthresh = 0.35, cosdist_sample_thresh=0.3, cosdist_DHS_thresh=0.3 ):
-    
-        #DEFUNCT DEFUNCT DEFUNCT
-        
-        
-        #initially only implementing SampleNormed basis
-        #but with a fix to make the DHSappearCut  more self-consistent
-        
-        from sklearn.cluster import KMeans
-        import scipy.spatial.distance as spdist
-
-        kmeans_normed_sample_orig = KMeans(n_clusters=self.Ncomps*ClustMult, random_state=0).fit(self.NormedBasis)
-        ClusterMeans = kmeans_normed_sample_orig.cluster_centers_
-        #this doesn't really work... i am using normed versionf of vectors and then throwing them into DHS matrix for reconstruction
-        ClusterPredictions = kmeans_normed_sample_orig.predict(relevant_matrix)
-        
-        Clusters = []
-        # find the "cluster center" in the actual DHS decomposed space
-        ClusterMeansReal = []
-
-        for i in range(self.Ncomps*ClustMult):
-            current_cut = np.argwhere(ClusterPredictions==i).T[0]
-            #print (BasisMat[current_cut].shape)
-            themean = np.mean(self.Basis[current_cut], axis=0)
-            #print(themean.shape)
-            print(i, len(ClusterPredictions[current_cut]), names[current_cut])
-            ClusterMeansReal.append(themean)
-            Clusters.append([i, self.Basis_Names[current_cut], current_cut ])        
-        
-        #using ClusterMeans  (from Kmeans)
-
-        #threshold for what counts as a positive prediction in reconstruction matrix
-        #chosenthresh = 0.35
-        #threshold for cosine similarity distance for samples to be included in this module. 0.1 gives about the same samples as in the original cluster for 80% component dominance. 
-        #cosdist_sample_thresh = 0.3
-
-        #threshold for cosine similarity distance for DHS to be included in this module
-        #cosdist_DHS_thresh = 0.3
-        for i, cluster in enumerate(Clusters):
-
-            print ('doing cluster ',i)
-            # mean sample-wise component vector for this cluster
-            mean_of_cluster = ClusterMeans[i]
-            real_mean_of_cluster = ClusterMeansReal[i]
-            #create a single 1 x NDHS prediction for the cluster to
-            recon_cluster_DHS = np.dot(mean_of_cluster, self.Mixture)
-            cluster_length = len(cluster[1])
-            print('cluster length ',cluster_length)
-            print('name of samples', cluster[1])
-
-            #now you tile the vector to a size equivalent to N_samples_in_cluster x NDHS
-            kar = np.tile(recon_cluster_DHS, cluster_length).reshape(cluster_length, self.MixtureD)
-
-            #***** NOTE: for some reason I decided to use original version of NMF matrices for cosine 
-            #***** Similarity scores. Self-consistent? Not sure! 
-
-            #calculate cosine similarity of cluster mean to all sample-component vectors 
-            sample_cosdists = spdist.cdist(self.NormedBasis, np.reshape(mean_of_cluster, (1,self.Ncomps)), 'cosine').flatten()    
-            #calculate cosine similarity of cluster mean to all DHS-component vectors 
-            DHScosdists = spdist.cdist(self.NormedMixture, np.reshape(mean_of_cluster, (1,self.Ncomps)), 'cosine').flatten()
-            #now we sort these sample cosine distances
-            closers = np.argsort(sample_cosdists)
-
-            #using the thresholds defined outside the loop, we find the samples that meet the closeness
-            #criteria 
-            Num_samples = len(sample_cosdists[sample_cosdists<cosdist_sample_thresh])
-            print(' Num samples', Num_samples)
-            print('samples meeting threshold ',names[closers[0:Num_samples]])
-
-            #First we use our decision threshold to figure out if the model predicts a positive
-            #for a given position. Using the sample cluster mean component vector
-            DHSappear_cut = np.dot(real_mean_of_cluster, self.Mixture)>chosenthresh
-            #now sort the coside distances of DHS's that will appear from previous step    
-            DHScloseness = np.argsort(DHScosdists[DHSappear_cut])
-            Num_DHSs = len(DHScosdists[DHSappear_cut][DHScosdists[DHSappear_cut] < cosdist_DHS_thresh])
-            print(' Num_DHSs', Num_DHSs)
-
-            #now we use the masks to create a miniature version of the reconstruction matrix for the given DHS only
-            #strange use of double transpose 
-            sorted_Module = np.dot(self.Basis[closers[0:Num_samples]], self.Mixture.T[DHSappear_cut][DHScloseness][0:Num_DHSs].T)
-            #no idea how i pulled out this magic
-            #this gives the real data corresponding to the module 
-            corresponding_data = data[closers[0:Num_samples]][:,np.argwhere(DHSappear_cut == True).T[0][DHScloseness][0:Num_DHSs]]
-            #flatten both modules to count accurate predictions. 
-            flatsorted_Module = sorted_Module.flatten()
-            flatcorresponding_data = corresponding_data.flatten()
-            #calculate "density" i.e. number of entries of DHS hits within the module
-            if (len(flatsorted_Module) > 0):
-                density_in_recon = len(flatsorted_Module[flatsorted_Module>chosenthresh])/len(flatsorted_Module)
-            else:
-                density_in_recon = 0
-            if(len(flatcorresponding_data) > 0):
-                density_in_data = len(flatcorresponding_data[flatcorresponding_data>chosenthresh])/len(flatcorresponding_data)
-            else:
-                density_in_data = 0
-            #calculate true positives, false positives, False negatives, precision ,recall
-            TP = len(flatcorresponding_data[ (flatcorresponding_data>chosenthresh) * (flatsorted_Module>chosenthresh)])
-            FP = len(flatcorresponding_data[ np.invert(flatcorresponding_data>chosenthresh) * (flatsorted_Module>chosenthresh)])
-            FN = len( flatcorresponding_data[ (flatcorresponding_data>chosenthresh) * np.invert(flatsorted_Module>chosenthresh)])
-            if ((TP + FN ) > 0):
-                recall = TP / (TP + FN)
-            else: 
-                recall = 0
-            if ((TP +FP) > 0):
-                precision = TP / (TP + FP)
-            else:
-                precision = 0
-            print('density in reconstruction,  density in data,  precision,  recall')
-            print(density_in_recon, density_in_data, precision, recall  )
-            # don't remmeber how i figured this out either: I was possessed 
-            #saves module as a list of samples in the header followed by a list of eahc DHS position
-            #and whether it is or isn't present in the module.
-            firstcut = np.copy(DHSappear_cut)
-            firstcut[DHSappear_cut] *= (DHScosdists[DHSappear_cut] < cosdist_DHS_thresh)
-            list1 = [Num_samples, Num_DHSs, chosenthresh, cosdist_sample_thresh,  cosdist_DHS_thresh, density_in_recon, density_in_data, precision, recall]
-            theheader =  ' '.join(str(e) for e in list1)
-            namestr = ' '.join(names[closers[0:Num_samples]])
-            theheader +=' '+namestr
-            foutname = today+'Cluster_SampleNormed_Module'+str(i)+'.txt'
-            np.savetxt(foutname, firstcut, fmt='%i', header=theheader)
-
-        foutname2= today+'SampleNormed_ModuleMeans_ClusterMeansReal.txt'
-        np.savetxt(foutname2, np.array(ClusterMeansReal))
-        foutname2= today+'SampleNormed_ModuleMeans_ClusterMeans.txt'
-        np.savetxt(foutname2, np.array(ClusterMeans))
         
