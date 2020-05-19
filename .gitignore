@@ -1,5 +1,5 @@
 __pycache__
-.ipynb_checkpoints
+notebooks/.ipynb_checkpoints
 data/2018-06-08NC16_NNDSVD_Mixture.npy.gz
 data/dat_bin_FDR01_hg38.txt.gz
 *.npy
@@ -8,4 +8,5 @@ data/*.npy
 data/*.npy.gz
 data/*.tsv
 data/*.tsv.gz
+notebooks/*.png
 *.pdf

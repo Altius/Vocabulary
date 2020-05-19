@@ -10,6 +10,7 @@ The primary OO-developed code are distributed in the root directory.
 Various analysis and visualization efforts are demonstrated in the `notebooks` directory using Jupyter notebooks.
 Requisite data are stored in the `data` directory, when possible.
 Several larger files that are incompatible with Github are available through [Zenodo](https://doi.org/10.5281/zenodo.3752359).
+Supporting scripts to obtain peak or signal data for new unseen biosamples are available in `scripts`.
 
 Authors: Alexander (Sasha) Muratov & Wouter Meuleman
 
@@ -21,9 +22,9 @@ Shows how we chose k=16 NMF components using unsupervised metrics.
 3. **Demonstrating decomposition results of ENCODE DNase-Seq biosamples.**
 Demonstrates how we decomposed a binary 733x3.6M matrix into a Vocabulary of regulatory components
 4. **Visualizing decomposition results of ENCODE DNase-Seq biosamples.**
-Visualizes the results of the decomposition in the previous notebook. 
+Visualizes the results of the decomposition in the previous notebook. Includes UMAP projection.
 5. **Demonstrating the embedding of new biosamples into the coordinate space.**
-Demonstrates how we decomposed a binary 733x3.6M matrix into a Vocabulary of regulatory components
+Demonstrates how one can embed new (unseen) DNase-seq data into an existing NMF decomposition.
 6. **Visualizing the embedding of new biosamples into the coordinate space.**
 Visualizes the newly added biosamples alongside the existing 733. Includes UMAP projections.
 
